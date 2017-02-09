@@ -3,6 +3,8 @@ package q6.com.au.q6androidclient;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Context;
+import android.graphics.Rect;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -10,13 +12,17 @@ import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
 import q6.com.au.q6androidclient.Common.Q6Common;
+
+import static q6.com.au.q6androidclient.R.id.email;
 
 /**
  * A login screen that offers login via email/password.
@@ -46,16 +52,39 @@ public class LoginActivity extends AppCompatActivity  {
     private View mProgressView;
     private View mLoginFormView;
     private ImageView mQ6LogoImageView;
+   private Button mSignInButton;
 
+    private Q6Common q6Common;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         // Set up the login form.
-        mEmailView = (EditText) findViewById(R.id.email);
+        mEmailView = (EditText) findViewById(email);
        // populateAutoComplete();
 
         mPasswordView = (EditText) findViewById(R.id.password);
+
+        mSignInButton = (Button) findViewById(R.id.email_sign_in_button);
+
+        q6Common = new Q6Common(this);
+
+//        mEmailView .setOnFocusChangeListener(new View.OnFocusChangeListener() {
+//            @Override
+//            public void onFocusChange(View v, boolean hasFocus) {
+//                if (!hasFocus) {
+//                    hideKeyboard(v);
+//                }
+//            }
+//        });
+//        mPasswordView .setOnFocusChangeListener(new View.OnFocusChangeListener() {
+//            @Override
+//            public void onFocusChange(View v, boolean hasFocus) {
+//                if (!hasFocus) {
+//                    hideKeyboard(v);
+//                }
+//            }
+//        });
 //        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
 //            @Override
 //            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
@@ -67,7 +96,7 @@ public class LoginActivity extends AppCompatActivity  {
 //            }
 //        });
 
-        Button mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
+     //   Button mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
 //        mEmailSignInButton.setOnClickListener(new OnClickListener() {
 //            @Override
 //            public void onClick(View view) {
@@ -92,6 +121,95 @@ public class LoginActivity extends AppCompatActivity  {
         LinearLayout.LayoutParams parms = new LinearLayout.LayoutParams(ScreenWidth/2,ScreenWidth/2);
         parms.gravity = Gravity.CENTER_HORIZONTAL;
         mQ6LogoImageView.setLayoutParams(parms);
+    }
+
+    public void SignInBtnClick(View view)
+    {
+        boolean IsInternetCONNECTED = q6Common.IsInternetConnected();
+
+      if (IsInternetCONNECTED == false)
+      {
+          q6Common.popUpMessage("Internet is not available,please check your Interent!");
+      }
+
+        // Store values at the time of the login attempt.
+        String email = mEmailView.getText().toString();
+        String password = mPasswordView.getText().toString();
+
+        boolean cancel = false;
+        View focusView = null;
+
+        // Reset errors.
+        mEmailView.setError(null);
+        mPasswordView.setError(null);
+
+        // Check for a valid email address.
+        if (TextUtils.isEmpty(email)) {
+            mEmailView.setError(getString(R.string.error_field_required));
+            focusView = mEmailView;
+           cancel = true;
+        } else if (!isEmailValid(email)) {
+            mEmailView.setError(getString(R.string.error_invalid_email));
+           focusView = mEmailView;
+           cancel = true;
+        }
+
+        if (cancel) {
+            // There was an error; don't attempt login and focus the first
+            // form field with an error.
+            focusView.requestFocus();
+        }
+
+    }
+
+//    public void hideKeyboard(View view) {
+//        InputMethodManager inputMethodManager =(InputMethodManager)getSystemService(Activity.INPUT_METHOD_SERVICE);
+//        inputMethodManager.hideSoftInputFromWindow(view.getWindowToken(), 0);
+//    }
+
+    //1.If focus is unchanged and someone is tapping outside of the current input field, then dismiss the IME
+    //2.If focus has changed and the next focused element isn't an instance of any kind of an input field, then dismiss the IME
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if(ev.getAction() == MotionEvent.ACTION_UP) {
+            final View view = getCurrentFocus();
+
+            if(view != null) {
+                final boolean consumed = super.dispatchTouchEvent(ev);
+
+                final View viewTmp = getCurrentFocus();
+                final View viewNew = viewTmp != null ? viewTmp : view;
+
+                if(viewNew.equals(view)) {
+                    final Rect rect = new Rect();
+                    final int[] coordinates = new int[2];
+
+                    view.getLocationOnScreen(coordinates);
+
+                    rect.set(coordinates[0], coordinates[1], coordinates[0] + view.getWidth(), coordinates[1] + view.getHeight());
+
+                    final int x = (int) ev.getX();
+                    final int y = (int) ev.getY();
+
+                    if(rect.contains(x, y)) {
+                        return consumed;
+                    }
+                }
+                else if(viewNew instanceof EditText ) {
+                    return consumed;
+                }
+
+                final InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+
+                inputMethodManager.hideSoftInputFromWindow(viewNew.getWindowToken(), 0);
+
+                viewNew.clearFocus();
+
+                return consumed;
+            }
+        }
+
+        return super.dispatchTouchEvent(ev);
     }
 //    private void populateAutoComplete() {
 //        if (!mayRequestContacts()) {
