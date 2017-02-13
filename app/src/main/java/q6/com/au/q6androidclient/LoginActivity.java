@@ -20,19 +20,38 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
+import com.android.volley.Request;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+import com.google.gson.Gson;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import q6.com.au.q6androidclient.Common.Q6Common;
+import q6.com.au.q6androidclient.Common.Q6WebClient;
+import q6.com.au.q6androidclient.Model.LoginParam;
 
 import static q6.com.au.q6androidclient.R.id.email;
+
 
 /**
  * A login screen that offers login via email/password.
  */
 public class LoginActivity extends AppCompatActivity  {
 
+
+
     /**
      * Id to identity READ_CONTACTS permission request.
      */
     private static final int REQUEST_READ_CONTACTS = 0;
+
 
     /**
      * A dummy authentication store containing known user names and passwords.
@@ -125,6 +144,7 @@ public class LoginActivity extends AppCompatActivity  {
 
     public void SignInBtnClick(View view)
     {
+        final LoginParam loginParam = new LoginParam();
         boolean IsInternetCONNECTED = q6Common.IsInternetConnected();
 
       if (IsInternetCONNECTED == false)
@@ -132,9 +152,72 @@ public class LoginActivity extends AppCompatActivity  {
           q6Common.popUpMessage("Internet is not available,please check your Interent!");
       }
 
+        loginParam.ClientIP = q6Common.GetDeviceIP();
+
         // Store values at the time of the login attempt.
-        String email = mEmailView.getText().toString();
-        String password = mPasswordView.getText().toString();
+        loginParam.LoginUserName = mEmailView.getText().toString();
+        loginParam.Password = mPasswordView.getText().toString();
+
+
+
+        String url = "https://api.q6.com.au/api/Q6/InternalUserLogin";
+
+        StringRequest postRequest = new StringRequest(Request.Method.POST, url,
+                new  Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                           boolean IsSuccessed = Boolean.parseBoolean(jsonResponse.getString("IsSuccessed"));
+
+                            if(IsSuccessed == true)
+                                {
+                                  JSONObject returndata = jsonResponse.getJSONObject("ReturnValue");
+
+
+                                }
+//                            String site = jsonResponse.getString("site"),
+//                                    network = jsonResponse.getString("network");
+//                            System.out.println("Site: "+site+"\nNetwork: "+network);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        error.printStackTrace();
+                    }
+                }
+        ) {
+            @Override
+            protected Map<String, String> getParams()
+            {
+                Map<String, String>  params = new HashMap<>();
+                // the POST parameters:
+                params.put("LoginUserName", loginParam.LoginUserName);
+                params.put("Password", loginParam.Password);
+                params.put("ClientIP", loginParam.ClientIP);
+                params.put("WebApiTOKEN", loginParam.WebApiTOKEN);
+                return params;
+            }
+        };
+        Volley.newRequestQueue(this).add(postRequest);
+
+
+        Gson gson = new Gson();
+        String json = gson.toJson(loginParam);
+        Q6WebClient q6WebClient = new Q6WebClient();
+//        Log.i("JSON","Test");
+//        try{
+//           Log.i("JSON",json);
+//
+//            String response = q6WebClient.post("https://api.q6.com.au/api/Q6/InternalUserLogin",json);
+//        }catch(IOException e){
+//            e.printStackTrace();
+//        }
+
 
         boolean cancel = false;
         View focusView = null;
@@ -144,11 +227,11 @@ public class LoginActivity extends AppCompatActivity  {
         mPasswordView.setError(null);
 
         // Check for a valid email address.
-        if (TextUtils.isEmpty(email)) {
+        if (TextUtils.isEmpty(loginParam.LoginUserName)) {
             mEmailView.setError(getString(R.string.error_field_required));
             focusView = mEmailView;
            cancel = true;
-        } else if (!isEmailValid(email)) {
+        } else if (!isEmailValid(loginParam.LoginUserName)) {
             mEmailView.setError(getString(R.string.error_invalid_email));
            focusView = mEmailView;
            cancel = true;
