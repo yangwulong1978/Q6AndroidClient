@@ -33,9 +33,11 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
+import q6.com.au.q6androidclient.Common.DbHelper;
 import q6.com.au.q6androidclient.Common.Q6Common;
 import q6.com.au.q6androidclient.Common.Q6WebClient;
 import q6.com.au.q6androidclient.Model.LoginParam;
+import q6.com.au.q6androidclient.Model.UserInfos;
 
 import static q6.com.au.q6androidclient.R.id.email;
 
@@ -45,7 +47,7 @@ import static q6.com.au.q6androidclient.R.id.email;
  */
 public class LoginActivity extends AppCompatActivity  {
 
-
+    DbHelper dbHelper;
 
     /**
      * Id to identity READ_CONTACTS permission request.
@@ -87,6 +89,9 @@ public class LoginActivity extends AppCompatActivity  {
         mSignInButton = (Button) findViewById(R.id.email_sign_in_button);
 
         q6Common = new Q6Common(this);
+
+
+        dbHelper = DbHelper.getInstance(getApplicationContext());
 
 //        mEmailView .setOnFocusChangeListener(new View.OnFocusChangeListener() {
 //            @Override
@@ -175,6 +180,17 @@ public class LoginActivity extends AppCompatActivity  {
                                   JSONObject returndata = jsonResponse.getJSONObject("ReturnValue");
 
 
+                                    UserInfos userInfos = new UserInfos();
+
+                                    userInfos.LogInEmail = mEmailView.getText().toString();
+
+                                    userInfos.PassWord = mPasswordView.getText().toString();
+                                    userInfos.LoginStatus = "Login";
+                                    userInfos.LoginLastName = returndata.getString("LoginLastName");
+                                    userInfos.LoginFirstName = returndata.getString("LoginFirstName");
+                                    userInfos.CompanyID = returndata.getString("CompanyID");
+
+                                    dbHelper.insertUserDetail(userInfos);
                                 }
 //                            String site = jsonResponse.getString("site"),
 //                                    network = jsonResponse.getString("network");
