@@ -3,22 +3,21 @@ package q6.com.au.q6androidclient;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
-import android.content.Context;
-import android.graphics.Rect;
-import android.os.AsyncTask;
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -65,12 +64,12 @@ public class LoginActivity extends AppCompatActivity  {
     /**
      * Keep track of the login task to ensure we can cancel it if requested.
      */
-    private UserLoginTask mAuthTask = null;
+
 
     // UI references.
     private EditText mEmailView;
     private EditText mPasswordView;
-    private View mProgressView;
+    private ProgressBar mProgressView;
     private View mLoginFormView;
     private ImageView mQ6LogoImageView;
    private Button mSignInButton;
@@ -87,28 +86,36 @@ public class LoginActivity extends AppCompatActivity  {
         mPasswordView = (EditText) findViewById(R.id.password);
 
         mSignInButton = (Button) findViewById(R.id.email_sign_in_button);
-
+      mProgressView = (ProgressBar) findViewById(R.id.login_progress);
         q6Common = new Q6Common(this);
 
 
         dbHelper = DbHelper.getInstance(getApplicationContext());
 
-//        mEmailView .setOnFocusChangeListener(new View.OnFocusChangeListener() {
-//            @Override
-//            public void onFocusChange(View v, boolean hasFocus) {
-//                if (!hasFocus) {
-//                    hideKeyboard(v);
-//                }
-//            }
-//        });
-//        mPasswordView .setOnFocusChangeListener(new View.OnFocusChangeListener() {
-//            @Override
-//            public void onFocusChange(View v, boolean hasFocus) {
-//                if (!hasFocus) {
-//                    hideKeyboard(v);
-//                }
-//            }
-//        });
+
+        mEmailView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    mEmailView.setHint("");
+                }
+                else{
+                    mEmailView.setHint("Login Email");
+                }
+            }
+        });
+
+        mPasswordView .setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    mPasswordView .setHint("");
+                }
+                else{
+                    mPasswordView .setHint("Password");
+                }
+            }
+        });
 //        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
 //            @Override
 //            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
@@ -129,12 +136,15 @@ public class LoginActivity extends AppCompatActivity  {
 //        });
 
         mLoginFormView = findViewById(R.id.login_form);
-        mProgressView = findViewById(R.id.login_progress);
+       // mProgressView = findViewById(R.id.login_progress);
 
         mQ6LogoImageView = (ImageView)findViewById(R.id.Q6LogoImageView);
 
         InitScreen();
+        setDummyDataForProgramming();
     }
+
+
 
     private void InitScreen()
     {
@@ -145,10 +155,29 @@ public class LoginActivity extends AppCompatActivity  {
         LinearLayout.LayoutParams parms = new LinearLayout.LayoutParams(ScreenWidth/2,ScreenWidth/2);
         parms.gravity = Gravity.CENTER_HORIZONTAL;
         mQ6LogoImageView.setLayoutParams(parms);
+
+
+    }
+    private void setDummyDataForProgramming()
+    {
+        mEmailView.setText("yange@uniware.com.au");
+        mPasswordView.setText("richman58#");
     }
 
     public void SignInBtnClick(View view)
     {
+//        int ScreenWidth = Q6Common.getScreenWidth(this);
+//        int ScreenHeight = Q6Common.getScreenHeight(this);
+//        mProgressView.setX(ScreenWidth/2);
+//        mProgressView.setY(ScreenHeight/2);
+
+       // mProgressView.setBackgroundColor(Color.RED);
+        //showProgress(true);
+
+        mProgressView.setVisibility(View.VISIBLE);
+        //set progressView circular color
+        mProgressView.getIndeterminateDrawable().setColorFilter(Color.RED, PorterDuff.Mode.SRC_IN);
+
         final LoginParam loginParam = new LoginParam();
         boolean IsInternetCONNECTED = q6Common.IsInternetConnected();
 
@@ -174,9 +203,10 @@ public class LoginActivity extends AppCompatActivity  {
                         try {
                             JSONObject jsonResponse = new JSONObject(response);
                            boolean IsSuccessed = Boolean.parseBoolean(jsonResponse.getString("IsSuccessed"));
+                           String msg = jsonResponse.getString("Message");
 
                             if(IsSuccessed == true)
-                                {
+                            {
                                   JSONObject returndata = jsonResponse.getJSONObject("ReturnValue");
 
 
@@ -191,7 +221,22 @@ public class LoginActivity extends AppCompatActivity  {
                                     userInfos.CompanyID = returndata.getString("CompanyID");
 
                                     dbHelper.insertUserDetail(userInfos);
+
+
+
+                                    Intent intent = new Intent(getApplicationContext(), PassCodeActivity.class);
+                                 //   intent.putExtra("sub1","chemistry");
+                                   startActivity(intent);
+                                    mProgressView.setVisibility(View.GONE);
+
                                 }
+                            else
+                            {
+                              q6Common.popUpMessage(msg);
+                                mProgressView.setVisibility(View.GONE);
+                      //    Q6Common.popUpMessage();
+                            }
+
 //                            String site = jsonResponse.getString("site"),
 //                                    network = jsonResponse.getString("network");
 //                            System.out.println("Site: "+site+"\nNetwork: "+network);
@@ -268,48 +313,48 @@ public class LoginActivity extends AppCompatActivity  {
 
     //1.If focus is unchanged and someone is tapping outside of the current input field, then dismiss the IME
     //2.If focus has changed and the next focused element isn't an instance of any kind of an input field, then dismiss the IME
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        if(ev.getAction() == MotionEvent.ACTION_UP) {
-            final View view = getCurrentFocus();
-
-            if(view != null) {
-                final boolean consumed = super.dispatchTouchEvent(ev);
-
-                final View viewTmp = getCurrentFocus();
-                final View viewNew = viewTmp != null ? viewTmp : view;
-
-                if(viewNew.equals(view)) {
-                    final Rect rect = new Rect();
-                    final int[] coordinates = new int[2];
-
-                    view.getLocationOnScreen(coordinates);
-
-                    rect.set(coordinates[0], coordinates[1], coordinates[0] + view.getWidth(), coordinates[1] + view.getHeight());
-
-                    final int x = (int) ev.getX();
-                    final int y = (int) ev.getY();
-
-                    if(rect.contains(x, y)) {
-                        return consumed;
-                    }
-                }
-                else if(viewNew instanceof EditText ) {
-                    return consumed;
-                }
-
-                final InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-
-                inputMethodManager.hideSoftInputFromWindow(viewNew.getWindowToken(), 0);
-
-                viewNew.clearFocus();
-
-                return consumed;
-            }
-        }
-
-        return super.dispatchTouchEvent(ev);
-    }
+//    @Override
+//    public boolean dispatchTouchEvent(MotionEvent ev) {
+//        if(ev.getAction() == MotionEvent.ACTION_UP) {
+//            final View view = getCurrentFocus();
+//
+//            if(view != null) {
+//                final boolean consumed = super.dispatchTouchEvent(ev);
+//
+//                final View viewTmp = getCurrentFocus();
+//                final View viewNew = viewTmp != null ? viewTmp : view;
+//
+//                if(viewNew.equals(view)) {
+//                    final Rect rect = new Rect();
+//                    final int[] coordinates = new int[2];
+//
+//                    view.getLocationOnScreen(coordinates);
+//
+//                    rect.set(coordinates[0], coordinates[1], coordinates[0] + view.getWidth(), coordinates[1] + view.getHeight());
+//
+//                    final int x = (int) ev.getX();
+//                    final int y = (int) ev.getY();
+//
+//                    if(rect.contains(x, y)) {
+//                        return consumed;
+//                    }
+//                }
+//                else if(viewNew instanceof EditText ) {
+//                    return consumed;
+//                }
+//
+//                final InputMethodManager inputMethodManager = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+//
+//                inputMethodManager.hideSoftInputFromWindow(viewNew.getWindowToken(), 0);
+//
+//                viewNew.clearFocus();
+//
+//                return consumed;
+//            }
+//        }
+//
+//        return super.dispatchTouchEvent(ev);
+//    }
 //    private void populateAutoComplete() {
 //        if (!mayRequestContacts()) {
 //            return;
@@ -360,9 +405,7 @@ public class LoginActivity extends AppCompatActivity  {
      * errors are presented and no actual login attempt is made.
      */
     private void attemptLogin() {
-        if (mAuthTask != null) {
-            return;
-        }
+
 
         // Reset errors.
         mEmailView.setError(null);
@@ -401,8 +444,7 @@ public class LoginActivity extends AppCompatActivity  {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            mAuthTask = new UserLoginTask(email, password);
-            mAuthTask.execute((Void) null);
+
         }
     }
 
@@ -424,6 +466,12 @@ public class LoginActivity extends AppCompatActivity  {
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
         // for very easy animations. If available, use these APIs to fade-in
         // the progress spinner.
+        int ScreenWidth = Q6Common.getScreenWidth(this);
+        int ScreenHeight = Q6Common.getScreenHeight(this);
+        mProgressView.setX(ScreenWidth/2);
+        mProgressView.setY(ScreenHeight/2);
+
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
             int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
 
@@ -510,57 +558,6 @@ public class LoginActivity extends AppCompatActivity  {
      * Represents an asynchronous login/registration task used to authenticate
      * the user.
      */
-    public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
 
-        private final String mEmail;
-        private final String mPassword;
-
-        UserLoginTask(String email, String password) {
-            mEmail = email;
-            mPassword = password;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... params) {
-            // TODO: attempt authentication against a network service.
-
-            try {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                return false;
-            }
-
-            for (String credential : DUMMY_CREDENTIALS) {
-                String[] pieces = credential.split(":");
-                if (pieces[0].equals(mEmail)) {
-                    // Account exists, return true if the password matches.
-                    return pieces[1].equals(mPassword);
-                }
-            }
-
-            // TODO: register the new account here.
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mAuthTask = null;
-            showProgress(false);
-
-            if (success) {
-                finish();
-            } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
-            }
-        }
-
-        @Override
-        protected void onCancelled() {
-            mAuthTask = null;
-            showProgress(false);
-        }
-    }
 }
 
